@@ -105,9 +105,8 @@ def finetune(args):
                         text_no = text_no + f"{pathologies[l]} is present. "
                     text = [text_yes, text_no]
                     text_tokens = tokenizer(
-                        text, return_tensors="pt", padding="max_length", truncation=True, max_length=512).to(
-                        torch.device('cuda'))
-                    output = model(text_tokens, inputs, device=torch.device('cuda'))
+                        text, return_tensors="pt", padding="max_length", truncation=True, max_length=512).to(device=device)
+                    output = model(text_tokens, inputs, device=torch.device(device=device))
 
                     logits = F.softmax(output, dim=0)
                     labels = torch.tensor([1.0, 0.0]).cuda()

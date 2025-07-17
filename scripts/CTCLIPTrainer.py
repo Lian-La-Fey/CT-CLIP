@@ -379,7 +379,7 @@ class CTClipTrainer(nn.Module):
 
     def train(self, log_fn=noop):
         device = next(self.CTClip.parameters()).device
-        device=torch.device('cuda')
+        device=torch.device(device=device)
         while self.steps < self.num_train_steps:
             logs = self.train_step()
             log_fn(logs)

@@ -12,8 +12,11 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.distributed import DistributedSampler
 
-from data_inference_nii import CTReportDatasetinfer
+# from data_inference_nii import CTReportDatasetinfer
 #from data_external_valid import CTReportDatasetinfer
+
+from data_inference import CTReportDatasetinfer
+
 import numpy as np
 import tqdm
 import pandas as pd

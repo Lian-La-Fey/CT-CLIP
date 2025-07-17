@@ -287,7 +287,7 @@ class CTClipInference(nn.Module):
 
     def infer(self, log_fn=noop):
         device = next(self.CTClip.parameters()).device
-        device=torch.device('cuda')
+        device=torch.device(device=device)
         while True:
             finish = self.train_step()
             if finish:
