@@ -109,7 +109,7 @@ def process_file(file_path):
     resized_array = resize_array(tensor, current, target)
     resized_array = resized_array[0][0]
 
-    save_folder = "valid_preprocessed/" #save folder for preprocessed
+    save_folder = "/home/raspuntinov/gcs/ct_rate/dataset/valid_fixed_preprocessed/" #save folder for preprocessed
     folder_path_new = os.path.join(save_folder, "valid_" + file_name.split("_")[1], "valid_" + file_name.split("_")[1] + file_name.split("_")[2]) #folder name for train or validation
     os.makedirs(folder_path_new, exist_ok=True)
     file_name = file_name.split(".")[0]+".npz"
@@ -118,10 +118,12 @@ def process_file(file_path):
 
 # Example usage:
 if __name__ == "__main__":
-    split_to_preprocess = 'valid' #select the validation or test split
+    #select the validation or test split
+    split_to_preprocess = '/home/raspuntinov/gcs/ct_rate/dataset/valid_fixed' 
     nii_files = read_nii_files(split_to_preprocess)
-
-    df = pd.read_csv("validation_metadata.csv") #select the metadata
+    
+    #select the metadata
+    df = pd.read_csv("/home/raspuntinov/gcs/ct_rate/dataset/metadata/validation_metadata.csv") 
 
     num_workers = 18  # Number of worker processes
 

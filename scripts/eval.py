@@ -97,7 +97,7 @@ def plot_roc(y_pred, y_true, roc_name, plot_dir, plot=True):
         ax.grid(color='lightgray', linestyle='--', linewidth=0.5)
 
         # Save the plot with a high-resolution output
-        plt.savefig(f"{plot_dir}" + roc_path, bbox_inches='tight')
+        plt.savefig(plot_dir / roc_path, bbox_inches='tight')
     return fpr, tpr, thresholds, roc_auc
 
 # J = TP/(TP+FN) + TN/(TN+FP) - 1 = tpr - fpr
@@ -154,7 +154,7 @@ def plot_pr(y_pred, y_true, pr_name, plot_dir, plot=True):
         ax.tick_params(axis='y', labelsize=10)
 
         # Save the plot with a high-resolution output
-        plt.savefig(f"{plot_dir}" + pr_path, bbox_inches='tight')
+        plt.savefig(plot_dir / pr_path, bbox_inches='tight')
     return precision, recall, thresholds
 
 def evaluate_internal(y_pred, y_true, cxr_labels, plot_dir,
@@ -186,14 +186,14 @@ def evaluate_internal(y_pred, y_true, cxr_labels, plot_dir,
         roc_name = cxr_label + ' ROC Curve'
         print(y_pred_i.shape)
         print(y_true_i.shape)
-        fpr, tpr, thresholds, roc_auc = plot_roc(y_pred_i, y_true_i, roc_name, plot_dir, plot=False)
+        fpr, tpr, thresholds, roc_auc = plot_roc(y_pred_i, y_true_i, roc_name, plot_dir, plot=True)
         df = pd.DataFrame([roc_auc], columns=[cxr_label+'_auc'])
         dataframes.append(df)
         sens, spec = choose_operating_point(fpr, tpr, thresholds)
 
         ''' PRECISION-RECALL CURVE '''
         pr_name = cxr_label + ' Precision-Recall Curve'
-        precision, recall, thresholds = plot_pr(y_pred_i, y_true_i, pr_name, plot_dir, plot=False)
+        precision, recall, thresholds = plot_pr(y_pred_i, y_true_i, pr_name, plot_dir, plot=True)
         """
         results = [precision[0]]
         df = pd.DataFrame(results, columns=[cxr_label+'_precision'])
