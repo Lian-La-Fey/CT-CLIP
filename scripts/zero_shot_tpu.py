@@ -30,11 +30,9 @@ from transformer_maskgit.optimizer import get_optimizer
 from transformers import BertTokenizer
 from ct_clip import CTCLIP
 
-from data_inference import CTReportDatasetinfer
-
 from eval import evaluate_internal, plot_roc, accuracy, sigmoid, bootstrap, compute_cis
 
-from data_inference import CTReportDatasetinfer
+from data_inference_nii import CTReportDatasetinfer
 
 # Yardımcı fonksiyonlar
 def exists(val):

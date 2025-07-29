@@ -4,7 +4,7 @@ from eval import evaluate_internal
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from data_inference import CTReportDatasetinfer
+from data_inference_nii import CTReportDatasetinfer
 import numpy as np
 import tqdm
 import pandas as pd
