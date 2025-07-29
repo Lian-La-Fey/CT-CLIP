@@ -1,133 +1,47 @@
-# import torch
-# from transformer_maskgit import CTViT
-# from transformers import BertTokenizer, BertModel
-# from ct_clip import CTCLIP
-# from zero_shot import CTClipInference
-# import accelerate
-
-# tokenizer = BertTokenizer.from_pretrained('microsoft/BiomedVLP-CXR-BERT-specialized',do_lower_case=True)
-# text_encoder = BertModel.from_pretrained("microsoft/BiomedVLP-CXR-BERT-specialized")
-
-# text_encoder.resize_token_embeddings(len(tokenizer))
-
-
-# image_encoder = CTViT(
-#     dim = 512,
-#     codebook_size = 8192,
-#     image_size = 480,
-#     patch_size = 20,
-#     temporal_patch_size = 10,
-#     spatial_depth = 4,
-#     temporal_depth = 4,
-#     dim_head = 32,
-#     heads = 8
-# )
-
-# clip = CTCLIP(
-#     image_encoder = image_encoder,
-#     text_encoder = text_encoder,
-#     dim_image = 294912,
-#     dim_text = 768,
-#     dim_latent = 512,
-#     extra_latent_projection = False,         # whether to use separate projections for text-to-image vs image-to-text comparisons (CLOOB)
-#     use_mlm=False,
-#     downsample_image_embeds = False,
-#     use_all_token_embeds = False
-
-# )
-
-# clip.load("path_to_pretrained_model")
-
-# inference = CTClipInference(
-#     clip,
-#     data_folder = 'path_to_preprocessed_validation_folder',
-#     reports_file= "path_to_validation_reports_csv",
-#     labels = "path_to_validation_labels_csv",
-#     batch_size = 1,
-#     results_folder="inference_zeroshot/",
-#     num_train_steps = 1,
-# )
-
-# inference.infer()
-
-import os
-import torch
-
-import torch_xla
-import torch_xla.core.xla_model as xm
-import torch_xla.distributed.xla_multiprocessing as xmp
-import torch_xla.distributed.parallel_loader as pl
-import torch_xla.utils.utils as xu
-
 from transformer_maskgit import CTViT
 from transformers import BertTokenizer, BertModel
 from ct_clip import CTCLIP
 from zero_shot import CTClipInference
 
+tokenizer = BertTokenizer.from_pretrained('microsoft/BiomedVLP-CXR-BERT-specialized', do_lower_case=True)
+text_encoder = BertModel.from_pretrained("microsoft/BiomedVLP-CXR-BERT-specialized")
 
-def _mp_fn(index, args):
-    device = xm.xla_device()
-    
-    tokenizer = BertTokenizer.from_pretrained('microsoft/BiomedVLP-CXR-BERT-specialized', do_lower_case=True)
-    text_encoder = BertModel.from_pretrained("microsoft/BiomedVLP-CXR-BERT-specialized")
-    text_encoder.resize_token_embeddings(len(tokenizer))
-    
-    image_encoder = CTViT(
-        dim=512,
-        codebook_size=8192,
-        image_size=480,
-        patch_size=20,
-        temporal_patch_size=10,
-        spatial_depth=4,
-        temporal_depth=4,
-        dim_head=32,
-        heads=8
-    )
-    
-    clip = CTCLIP(
-        image_encoder=image_encoder,
-        text_encoder=text_encoder,
-        dim_image=294912,
-        dim_text=768,
-        dim_latent=512,
-        extra_latent_projection=False,
-        use_mlm=False,
-        downsample_image_embeds=False,
-        use_all_token_embeds=False
-    )
-    
-    print("if xm.is_master_ordinal():")
-    
-    checkpoint = torch.load(
-        "/home/raspuntinov/gcs/report_gen_models/ct_clip/CT-CLIP_v2.pt",
-        map_location=torch.device('cpu'),
-        weights_only=False,
-    )
-    
-    filtered_checkpoint = {
-        k: v for k, v in checkpoint.items()
-        if k != "text_transformer.embeddings.position_ids"
-    }
+text_encoder.resize_token_embeddings(len(tokenizer))
 
-    clip.load_state_dict(filtered_checkpoint, strict=False)
-    xm.rendezvous("load_model")
-    
-    clip = clip.to(device)
-    
-    print("clip = clip.to(device)")
-    
-    inference = CTClipInference(
-        clip,
-        data_folder="/home/raspuntinov/gcs/ct_rate/dataset/valid_fixed_preprocessed",
-        reports_file="/home/raspuntinov/gcs/ct_rate/dataset/radiology_text_reports/validation_reports.csv",
-        labels="/home/raspuntinov/gcs/ct_rate/dataset/multi_abnormality_labels/valid_predicted_labels.csv",
-        batch_size=4,
-        results_folder="inference_zeroshot/",
-        num_train_steps=1,
-        device=device
-    )
-    
-    inference.infer()
+image_encoder = CTViT(
+    dim = 512,
+    codebook_size = 8192,
+    image_size = 480,
+    patch_size = 20,
+    temporal_patch_size = 10,
+    spatial_depth = 4,
+    temporal_depth = 4,
+    dim_head = 32,
+    heads = 8
+)
 
-if __name__ == '__main__':
-    torch_xla.launch(_mp_fn, args=(None,), debug_single_process=False)
+clip = CTCLIP(
+    image_encoder = image_encoder,
+    text_encoder = text_encoder,
+    dim_image = 294912,
+    dim_text = 768,
+    dim_latent = 512,
+    extra_latent_projection = False,         # whether to use separate projections for text-to-image vs image-to-text comparisons (CLOOB)
+    use_mlm=False,
+    downsample_image_embeds = False,
+    use_all_token_embeds = False
+
+)
+
+clip.load("path_to_pretrained_model") #TODO: the path to the pretrained model
+
+inference = CTClipInference(
+    clip,
+    data_folder = 'path_to_preprocessed_validation_folder', #TODO: Path to preprocessed validation data
+    reports_file= "path_to_validation_reports_csv", #TODO: Path to validation reports CSV
+    meta_file = "path_to_validation_metadata_csv", #TODO: Path to validation metadata CSV
+    labels = "path_to_validation_labels_csv", #TODO: Path to validation labels CSV
+    results_folder = "inference_zeroshot/", #TODO: Folder to save inference results
+)
+
+inference.infer()
