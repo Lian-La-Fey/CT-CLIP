@@ -10,7 +10,7 @@ import torch_xla.utils.utils as xu
 from transformer_maskgit import CTViT
 from transformers import BertTokenizer, BertModel
 from ct_clip import CTCLIP
-from zero_shot import CTClipInference
+from zero_shot_tpu import CTClipInference
 
 
 def _mp_fn(index, args):
@@ -44,10 +44,8 @@ def _mp_fn(index, args):
         use_all_token_embeds=False
     )
     
-    print("if xm.is_master_ordinal():")
-    
     checkpoint = torch.load(
-        "/home/raspuntinov/gcs/report_gen_models/ct_clip/CT-CLIP_v2.pt",
+        "/home/raspuntinov/gcs/ct_rate/models/ct_clip/ct_clip/CT-CLIP_v2.pt",
         map_location=torch.device('cpu'),
         weights_only=False,
     )
@@ -62,16 +60,14 @@ def _mp_fn(index, args):
     
     clip = clip.to(device)
     
-    print("clip = clip.to(device)")
-    
     inference = CTClipInference(
         clip,
-        data_folder="/home/raspuntinov/gcs/ct_rate/dataset/valid_fixed_preprocessed",
+        data_folder="/home/raspuntinov/gcs/ct_rate/dataset/valid_fixed",
         reports_file="/home/raspuntinov/gcs/ct_rate/dataset/radiology_text_reports/validation_reports.csv",
         labels="/home/raspuntinov/gcs/ct_rate/dataset/multi_abnormality_labels/valid_predicted_labels.csv",
+        meta_file="/home/raspuntinov/gcs/ct_rate/dataset/metadata/validation_metadata.csv",
         batch_size=4,
         results_folder="inference_zeroshot/",
-        num_train_steps=1,
         device=device
     )
     

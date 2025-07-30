@@ -6,31 +6,27 @@ torch.serialization.safe_globals([np.ndarray])
 torch.serialization.add_safe_globals([np.dtype])
 
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 import numpy as np
-import tqdm
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
-from einops import rearrange
+
 import math
 import torch.optim.lr_scheduler as lr_scheduler
 from pathlib import Path
 import nibabel as nib
 import os
 
-# TPU için gerekli kütüphaneler
+# TPU
 import torch_xla
 import torch_xla.core.xla_model as xm
 import torch_xla.distributed.parallel_loader as pl
 import torch_xla.utils.utils as xu
 import torch_xla.runtime as xr
 
-# Özel modüller
-from transformer_maskgit.optimizer import get_optimizer
 from transformers import BertTokenizer
 from ct_clip import CTCLIP
 
-from eval import evaluate_internal, plot_roc, accuracy, sigmoid, bootstrap, compute_cis
+from eval import evaluate_internal
 
 from data_inference_nii import CTReportDatasetinfer
 
@@ -88,10 +84,10 @@ class CTClipInference(nn.Module):
         self,
         CTClip: CTCLIP,
         *,
-        num_train_steps,
         batch_size,
         data_folder="external_valid",
         reports_file="data_reports.xlsx",
+        meta_file="meta_data.csv",
         labels="labels.csv",
         results_folder='./results',
         device=None,
@@ -104,14 +100,12 @@ class CTClipInference(nn.Module):
             do_lower_case=True
         )
         self.results_folder = results_folder
-        self.num_train_steps = num_train_steps
         self.batch_size = batch_size
         self.steps = torch.tensor(0, device=self.device)
         
-        # Veri setini yükle
-        self.ds = CTReportDatasetinfer(data_folder=data_folder, csv_file=reports_file,labels=labels)
+        self.ds = CTReportDatasetinfer(data_folder=data_folder, reports_file=reports_file, meta_file=meta_file, labels=labels)
         
-        # TPU için dağıtılmış sampler oluştur
+        # create distributed sampler for TPU
         sampler = torch.utils.data.distributed.DistributedSampler(
             self.ds,
             num_replicas=xr.world_size(),
@@ -119,7 +113,6 @@ class CTClipInference(nn.Module):
             shuffle=False
         )
         
-        # Veri yükleyiciyi oluştur
         self.dl = DataLoader(
             self.ds,
             sampler=sampler,
@@ -129,10 +122,10 @@ class CTClipInference(nn.Module):
             drop_last=True,
         )
         
-        # TPU için paralel yükleyici
+        # parallel loader for TPU
         self.dl_iter = pl.MpDeviceLoader(self.dl, self.device)
         
-        # Çıktı klasörünü oluştur
+        # create the output folder
         if xm.is_master_ordinal():
             self.results_folder = Path(results_folder)
             self.results_folder.mkdir(parents=True, exist_ok=True)
@@ -198,14 +191,14 @@ class CTClipInference(nn.Module):
                         max_length=512
                     ).to(self.device)
                     
-                    # Model çıktısını al
+                    # model çıktısını al
                     output = self.CTClip(text_tokens, valid_data, device=self.device)
                     output = apply_softmax(output)
                     
                     # Pozitif sınıfın olasılığını sakla
                     predicted_labels.append(output[0].item())
                 
-                # Sonuçları topla
+                # Collect results
                 predicted_all.append(predicted_labels)
                 # real_all.append(onehotlabels.cpu().numpy()[0])
                 real_all.append(onehotlabels.cpu().numpy()[0].tolist())
@@ -216,7 +209,7 @@ class CTClipInference(nn.Module):
         print(f"{xr.global_ordinal()} - real_all: {real_all}")
         
         # xm.rendezvous('after_loop')
-        # Tüm TPU'ların sonuçlarını topla
+        # collect results of all TPUs
         predicted_all = xm.mesh_reduce(
             'pred',
             predicted_all,
@@ -239,35 +232,26 @@ class CTClipInference(nn.Module):
         
         print(f"{xr.global_ordinal()} - accession_names")
         
-        # Sadece master TPU sonuçları kaydetsin
+        # only master TPU saves results
         if xm.is_master_ordinal():
-            
-            # Sonuçları kaydet
             np.savez(self.results_folder / "labels_weights.npz", data=real_all)
             np.savez(self.results_folder / "predicted_weights.npz", data=predicted_all)
             
-            # Accession numaralarını kaydet
+            # save accession numbers
             with open(self.results_folder / "accessions.txt", "w") as f:
                 for name in accession_names:
                     f.write(f"{name}\n")
             
-            # Metrikleri hesapla
+            # calc metrics
             df_results = evaluate_internal(
                 predicted_all, real_all, pathologies, self.results_folder
             )
             
-            # Excel'e kaydet
+            # excel'e kaydet
             df_results.to_excel(self.results_folder / "aurocs.xlsx", index=False)
-            
-            # ROC eğrilerini çiz
-            # plot_roc(real_all, predicted_all, pathologies, self.results_folder)
-            
-            # Bootstrap güven aralıkları
-            # bootstrap_results = bootstrap(real_all, predicted_all, n_bootstraps=1000)
-            # bootstrap_results.to_excel(self.results_folder / "bootstrap_results.xlsx")
             
             xm.master_print(f"Inference complete. Results saved to {self.results_folder}")
         
-        # Tüm TPU'ları senkronize et
+        # Synchronize TPUs
         xm.rendezvous('inference_done')
         
