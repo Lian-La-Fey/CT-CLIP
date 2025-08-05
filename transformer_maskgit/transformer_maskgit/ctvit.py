@@ -61,8 +61,8 @@ def cast_tuple(val, l = 1):
 
 def gradient_penalty(images, output, weight = 10):
     batch_size = images.shape[0]
-    # device=torch.device('cuda')
-    device = xm.xla_device()
+    device=torch.device('cuda')
+    # device = xm.xla_device()
     gradients = torch_grad(
         outputs = output,
         inputs = images,
@@ -111,8 +111,8 @@ def grad_layer_wrt_loss(loss, layer):
 def pick_video_frame(video, frame_indices):
     batch, device = video.shape[0], video.device
     video = rearrange(video, 'b c f ... -> b f c ...')
-    # device=torch.device('cuda')
-    device = xm.xla_device()
+    device=torch.device('cuda')
+    # device = xm.xla_device()
     batch_indices = torch.arange(batch, device = device)
     batch_indices = rearrange(batch_indices, 'b -> b 1')
     images = video[batch_indices, frame_indices]
@@ -251,8 +251,8 @@ class CTViT(nn.Module):
 
     def copy_for_eval(self):
         device = next(self.parameters()).device
-        # device=torch.device('cuda')
-        device = xm.xla_device()
+        device=torch.device('cuda')
+        # device = xm.xla_device()
         vae_copy = copy.deepcopy(self.cpu())
 
         if vae_copy.use_vgg_and_gan:
@@ -294,8 +294,8 @@ class CTViT(nn.Module):
         video_shape = tuple(tokens.shape[:-1])
 
         tokens = rearrange(tokens, 'b t h w d -> (b t) (h w) d')
-        # device=torch.device('cuda')
-        device = xm.xla_device()
+        device=torch.device('cuda')
+        # device = xm.xla_device()
         attn_bias = self.spatial_rel_pos_bias(h, w, device = device)
 
         tokens = self.enc_spatial_transformer(tokens, attn_bias = attn_bias, video_shape = video_shape)
@@ -335,8 +335,8 @@ class CTViT(nn.Module):
         # decode - spatial
 
         tokens = rearrange(tokens, 'b t h w d -> (b t) (h w) d')
-        # device=torch.device('cuda')
-        device = xm.xla_device()
+        device=torch.device('cuda')
+        # device = xm.xla_device()
         attn_bias = self.spatial_rel_pos_bias(h, w, device = device)
 
         tokens = self.dec_spatial_transformer(tokens, attn_bias = attn_bias, video_shape = video_shape)
@@ -378,8 +378,8 @@ class CTViT(nn.Module):
             assert not exists(mask)
 
         b, c, f, *image_dims, device = *video.shape, video.device
-        # device=torch.device('cuda')
-        device = xm.xla_device()
+        device=torch.device('cuda')
+        # device = xm.xla_device()
         assert tuple(image_dims) == self.image_size
         assert not exists(mask) or mask.shape[-1] == f
 

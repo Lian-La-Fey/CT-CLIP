@@ -58,8 +58,6 @@ class CTClipInference(nn.Module):
             self,
             CTClip: CTCLIP,
             *,
-            num_train_steps,
-            batch_size,
             data_folder: "external_valid",
             reports_file: "data_reports.xslx",
             meta_file: "meta_data.csv",
@@ -149,18 +147,6 @@ class CTClipInference(nn.Module):
                     # Save the NumPy array as a .npz file
                     np.savez(f'{self.results_folder}/image/{acc_name[0]}.npz', arr=enc_image_send_np)
 
-                self.accelerator.wait_for_everyone()
-        return True
-
-
-
-
-    def infer(self, log_fn=noop):
-        device = next(self.CTClip.parameters()).device
-        device=torch.device('cuda')
-        while True:
-            finish = self.train_step()
-            if finish:
-                break
+            self.accelerator.wait_for_everyone()
 
         self.print('Inference complete')
