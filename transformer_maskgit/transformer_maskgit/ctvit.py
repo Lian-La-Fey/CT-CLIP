@@ -19,7 +19,7 @@ from vector_quantize_pytorch import VectorQuantize
 
 from transformer_maskgit.attention import Attention, Transformer, ContinuousPositionBias
 
-import torch_xla.core.xla_model as xm
+# import torch_xla.core.xla_model as xm
 
 # helpers
 

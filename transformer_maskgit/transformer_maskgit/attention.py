@@ -8,7 +8,7 @@ from typing import Tuple
 
 from einops import rearrange, repeat
 
-import torch_xla.core.xla_model as xm
+# import torch_xla.core.xla_model as xm
 
 # helpers
 
